@@ -89,8 +89,7 @@ def get_prob_with_ranking(fitness):
     probs_tmp = [tmp.index(x) for x in fitness]
     probs_sum = sum(probs_tmp)
     probs = [p / probs_sum for p in probs_tmp]
-    return probs
-
+    return probs    
 
 def select_mating_pool_by_roulette(pop, fitness, num_parents):
     ret_idx = set()
@@ -100,6 +99,60 @@ def select_mating_pool_by_roulette(pop, fitness, num_parents):
         if idx not in ret_idx:
             ret_idx.add(idx)
     return [pop[idx] for idx in ret_idx]
+
+def generate_offspring_alternate_pick(parent1, parent2):
+    offspring = []
+    for i in range(len(parent1)):
+        if i % 2 == 0:
+            offspring.append(parent1[i])
+        else:
+            offspring.append(parent2[i])
+    return offspring
+
+def generate_offspring_heuristic(parent1, parent2):
+    alpha = 0.5
+    fit, weak = parent1, parent2
+    if calc_sol_fitness(fit) > calc_sol_fitness(weak):
+        fit, weak = weak, fit
+    offspring = []
+    for i in range(len(parent1)):
+        offspring.append(alpha * (fit[i]*fit[i] - weak[i]*weak[i]) + weak[i]*weak[i])
+    return offspring
+    
+def generate_offspring_geometric_mean(parent1, parent2):
+    offspring = []
+    for i in range(len(parent1)):
+        offspring.append(math.sqrt(abs(parent1[i]*parent2[i])))
+    return offspring
+
+def generate_offspring_arithmetic_mean_of_single_idx(parent1, parent2):
+    rand_idx = random.randrange(len(parent1))
+    parent1[rand_idx] = (parent1[rand_idx] + parent2[rand_idx]) / 2
+    return parent1
+
+def generate_offspring_arithmetic_mean(parent1, parent2):
+    offspring = []
+    for i in range(len(parent1)):
+        offspring.append((parent1[i]+parent2[i]) / 2)
+    return offspring
+
+def generate_offspring_onepoint(parent1, parent2):
+    offspring = []
+    p1f = calc_sol_fitness(parent1)
+    p2f = calc_sol_fitness(parent2)
+    if p1f < p2f:
+        for i in range(len(parent1)):
+            if i < N*(.75):
+                offspring.append(parent1[i])
+            else:
+                offspring.append(parent2[i])
+    else:
+        for i in range(len(parent1)):
+            if i > N*(0.75):
+                offspring.append(parent1[i])
+            else:
+                offspring.append(parent2[i])
+    return offspring
 
 def generate_offspring_random_biased(parent1, parent2):
     offspring = []
@@ -118,7 +171,7 @@ def generate_offspring_random_biased(parent1, parent2):
             else:
                 offspring.append(parent1[i])
         
-    return offspring
+    return offspring    
 
 def crossover(parents, num_offsprings):
     offprings = []
@@ -193,6 +246,7 @@ def main():
         min_fitness = min(fitness)
         print("gen={g}, min_fitness={mf}".format(g=gen, mf=min_fitness))
         parents = select_mating_pool_by_roulette(population, fitness, num_parents_mating)
+        # parents = tournament_selection(population, fitness, num_parents_mating)
         offspring_crossover = crossover(parents, num_offsprings = len(population) - len(parents))
         offspring_mutation = mutation(offspring_crossover)
         population = add_offsprings_with_prob(population, offspring_mutation, fitness)  
